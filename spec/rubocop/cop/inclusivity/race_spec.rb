@@ -7,24 +7,38 @@ RSpec.describe RuboCop::Cop::Inclusivity::Race, :config do
     {
       "Offenses" => {
         "whitelist" => ["allowlist", "passlist", "permitlist"],
-        "blacklist" => ["banlist, blocklist, denylist"]
+        "blacklist" => ["banlist", "blocklist", "denylist"]
       }
     }
   end
 
-  # TODO: Write test code
-  #
-  # For example
-  it "registers an offense when using insensitive language" do
+  it "checks variable assignments" do
+    expect_no_offenses(<<~RUBY)
+      banlist = 1
+    RUBY
+
     expect_offense(<<~RUBY)
       blacklist = 1
       ^^^^^^^^^ `blacklist` may be insensitive. Consider alternatives: banlist, blocklist, denylist
     RUBY
+
+    expect_correction(<<~RUBY)
+      banlist = 1
+    RUBY
   end
 
-  it "does not register an offense when using preferred language" do
+  it "checks constant assignments" do
     expect_no_offenses(<<~RUBY)
-      banlist = 1
+      BANLIST = ["foo", "bar"]
+    RUBY
+
+    expect_offense(<<~RUBY)
+      BLACKLIST = ["foo", "bar"]
+      ^^^^^^^^^ `BLACKLIST` may be insensitive. Consider alternatives: banlist, blocklist, denylist
+    RUBY
+
+    expect_correction(<<~RUBY)
+      BANLIST = ["foo", "bar"]
     RUBY
   end
 end

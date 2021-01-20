@@ -16,14 +16,20 @@ module RuboCop
       #   # good
       #   banlist = 1
       #
-      class Race < Cop
+      class Race < Base
+        extend AutoCorrector
+
         MSG = "`%s` may be insensitive. Consider alternatives: %s"
 
         def on_lvasgn(node)
           name, = *node
           return unless name
 
-          check_name(node, name, node.loc.name)
+          if (alternatives = preferred_language(name))
+            add_offense(node.loc.name, message: message(name, alternatives)) do |corrector|
+              corrector.replace(node.loc.name, alternatives.first)
+            end
+          end
         end
         alias on_ivasgn on_lvasgn
         alias on_cvasgn on_lvasgn
@@ -36,14 +42,21 @@ module RuboCop
         alias on_blockarg on_lvasgn
         alias on_lvar on_lvasgn
 
-        private
+        def on_casgn(node)
+          _parent, constant_name, _value = *node
 
-        def check_name(node, name, name_range)
-          if (alternatives = preferred_language(name))
-            msg = message(name, alternatives)
-            add_offense(node, location: name_range, message: msg)
+          if (alternatives = preferred_language(constant_name))
+            add_offense(node.loc.name, message: message(constant_name, alternatives)) do |corrector|
+              corrector.replace(node.loc.name, alternatives.first.upcase)
+            end
           end
         end
+
+        # def on_array(node)
+          # puts node
+        # end
+
+        private
 
         def preferred_language(word)
           cop_config["Offenses"][word.to_s.downcase]
